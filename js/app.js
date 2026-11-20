@@ -2,6 +2,7 @@ import { SPORTS, COUNTRIES, PARTICIPANTS } from './data.js';
 import { step, estimateRemaining, estimateTotal } from './sorter.js';
 import { el, photoBox, metaLine, toast } from './ui.js';
 import { openScores } from './scores.js';
+import { wireShare, h2hPayload, showShared } from './share.js';
 
 const STORE_KEY = 'hotranker:v1';
 const byId = new Map(PARTICIPANTS.map((p) => [p.id, p]));
@@ -42,9 +43,9 @@ function preload(id) {
   i.src = `photos/${id}.webp`;
 }
 function show(name) {
-  for (const s of ['setup', 'duel', 'results', 'scores']) $('#screen-' + s).hidden = s !== name;
+  for (const s of ['setup', 'duel', 'results', 'scores', 'shared']) $('#screen-' + s).hidden = s !== name;
   if (name === 'scores') { if (location.hash !== '#scores') history.replaceState(null, '', '#scores'); }
-  else if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  else if (name !== 'shared' && location.hash) history.replaceState(null, '', location.pathname + location.search);
   window.scrollTo(0, 0);
 }
 
@@ -345,18 +346,13 @@ function resultText() {
   return `${title}\n` + rows.map(({ rank, tie, p }) => `${rank}${tie ? '=' : '.'} ${p.name} ${SPORTS[p.sport].icon}`).join('\n');
 }
 
-$('#btn-copy').onclick = async () => {
-  try {
-    await navigator.clipboard.writeText(resultText());
-    toast('Ranking copied');
-  } catch {
-    toast('Copy is not available here');
-  }
+const h2hShare = {
+  getPayload: () => (session && session.groups ? h2hPayload(session, modeLabel(session)) : null),
+  getText: () => (session && session.groups ? resultText() : ''),
+  title: 'My Hot Ranker',
 };
-if (navigator.share) {
-  $('#btn-share').hidden = false;
-  $('#btn-share').onclick = () => navigator.share({ title: 'My Hot Ranker', text: resultText(), url: location.href }).catch(() => {});
-}
+wireShare({ linkBtn: $('#btn-link'), textBtn: $('#btn-copy'), nativeBtn: $('#btn-share'), ...h2hShare });
+wireShare({ linkBtn: $('#btn-link-2'), textBtn: $('#btn-copy'), ...h2hShare });
 $('#btn-again').onclick = () => { clearSaved(); session = null; show('setup'); renderSetup(); };
 
 /* ---------------- tabs ---------------- */
@@ -369,4 +365,10 @@ document.querySelectorAll('[data-tab]').forEach((b) => {
 
 /* ---------------- boot ---------------- */
 renderSetup();
-if (location.hash === '#scores') { show('scores'); openScores(); } else show('setup');
+function route() {
+  if (location.hash.startsWith('#r=')) { show('shared'); showShared(location.hash.slice(3)); }
+  else if (location.hash === '#scores') { show('scores'); openScores(); }
+  else show('setup');
+}
+route();
+window.addEventListener('hashchange', () => { if (location.hash.startsWith('#r=')) route(); });

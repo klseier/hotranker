@@ -2,6 +2,7 @@
 // the ranking is a weighted average and updates live.
 import { SPORTS, PARTICIPANTS } from './data.js';
 import { el, photoBox, metaLine, toast } from './ui.js';
+import { wireShare, scoresPayload } from './share.js';
 
 const KEY = 'hotranker:scores:v1';
 const MIN = 0, MAX = 10, STEP = 0.5;
@@ -468,10 +469,13 @@ function bindOnce() {
   document.querySelectorAll('#view-switch .seg').forEach((b) => { b.onclick = () => setView(b.dataset.view); });
   document.querySelectorAll('#layout-switch .seg').forEach((b) => { b.onclick = () => setLayout(b.dataset.layout); });
   $('#list-sort').onchange = (e) => { listSort = e.target.value; renderList(); };
-  $('#copy-scores').onclick = async () => {
-    try { await navigator.clipboard.writeText(boardText()); toast('Ranking copied'); }
-    catch { toast('Copy is not available here'); }
+  const shareCfg = {
+    getPayload: () => scoresPayload(state.scores, state.weights, PARTICIPANTS.map((p) => p.id)),
+    getText: () => (rows().some((r) => r.done) ? boardText() : ''),
+    title: 'My Hot Ranker · Scores',
   };
+  wireShare({ linkBtn: $('#scores-link'), textBtn: $('#scores-copy'), nativeBtn: $('#scores-share'), ...shareCfg });
+  wireShare({ linkBtn: $('#copy-scores'), textBtn: $('#scores-copy'), ...shareCfg });
   let armed = false;
   $('#reset-scores').onclick = (e) => {
     if (!armed) {

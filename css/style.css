@@ -566,3 +566,25 @@ kbd {
   .list-head span:last-child { text-align: right; }
   .lcell-label { display: none; }
 }
+
+/* ================= Share ================= */
+.share-card {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin: 4px 0 18px; padding: 14px 16px; border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(255, 77, 109, .16), rgba(255, 154, 60, .1));
+  border: 1px solid rgba(255, 120, 90, .4);
+}
+.share-text { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.share-text b { font-size: 1.02rem; }
+.share-text span { color: var(--muted); font-size: .85rem; }
+.share-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.share-actions .btn { padding: 10px 16px; font-size: .92rem; text-decoration: none; display: inline-flex; align-items: center; }
+.share-actions [hidden] { display: none; }
+.share-card-sm { margin-bottom: 16px; }
+#screen-scores .share-card { margin: 0 0 12px; }
+@media (max-width: 480px) {
+  .share-actions { width: 100%; }
+  .share-actions .btn { flex: 1; justify-content: center; padding: 10px 8px; font-size: .88rem; }
+  #screen-scores .share-text span { display: none; }
+}
+#shared-list .rank-row .bars { margin-top: 4px; }
