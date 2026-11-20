@@ -3,6 +3,7 @@
 import { SPORTS, PARTICIPANTS } from './data.js';
 import { el, photoBox, metaLine, toast } from './ui.js';
 import { wireShare, scoresPayload } from './share.js';
+import { saveResultImage } from './image.js';
 
 const KEY = 'hotranker:scores:v1';
 const MIN = 0, MAX = 10, STEP = 0.5;
@@ -476,6 +477,28 @@ function bindOnce() {
   };
   wireShare({ linkBtn: $('#scores-link'), textBtn: $('#scores-copy'), nativeBtn: $('#scores-share'), ...shareCfg });
   wireShare({ linkBtn: $('#copy-scores'), textBtn: $('#scores-copy'), ...shareCfg });
+  $('#scores-image').onclick = () => {
+    const all = PARTICIPANTS.map((p) => p.id);
+    const done = all.filter(isComplete).map((id) => ({ id, p: byId.get(id), o: overall(id) }))
+      .sort((a, b) => b.o.toFixed(2) - a.o.toFixed(2) || state.scores[b.id].weak - state.scores[a.id].weak || a.p.name.localeCompare(b.p.name));
+    let rank = 0, prev = null;
+    const keyOf = (r) => r.o.toFixed(2) + '|' + state.scores[r.id].weak;
+    const rowsImg = done.map((r, i) => {
+      const k = keyOf(r);
+      if (k !== prev) rank = i + 1;
+      prev = k;
+      const sc = state.scores[r.id];
+      return { rank, tie: done.some((x) => x !== r && keyOf(x) === k), p: r.p, total: r.o.toFixed(2), vals: [sc.face, sc.hot, sc.weak] };
+    });
+    const t = CRITERIA.reduce((s2, c) => s2 + state.weights[c.key], 0) || 1;
+    const w = CRITERIA.map((c) => `${c.label} ${Math.round((state.weights[c.key] / t) * 100)}%`).join(' · ');
+    saveResultImage({
+      title: 'My Hot Ranker · Scores',
+      subtitle: `${rowsImg.length} athletes · ✨ Facecard  🔥 Hotness  🫠 Weakness`,
+      rows: rowsImg,
+      footnote: 'Weights: ' + w,
+    }, 'hot-ranker-scores.png');
+  };
   let armed = false;
   $('#reset-scores').onclick = (e) => {
     if (!armed) {

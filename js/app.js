@@ -3,6 +3,7 @@ import { step, estimateRemaining, estimateTotal } from './sorter.js';
 import { el, photoBox, metaLine, toast } from './ui.js';
 import { openScores } from './scores.js';
 import { wireShare, h2hPayload, showShared } from './share.js';
+import { saveResultImage } from './image.js';
 
 const STORE_KEY = 'hotranker:v1';
 const byId = new Map(PARTICIPANTS.map((p) => [p.id, p]));
@@ -353,6 +354,17 @@ const h2hShare = {
 };
 wireShare({ linkBtn: $('#btn-link'), textBtn: $('#btn-copy'), nativeBtn: $('#btn-share'), ...h2hShare });
 wireShare({ linkBtn: $('#btn-link-2'), textBtn: $('#btn-copy'), ...h2hShare });
+$('#btn-image').onclick = () => {
+  if (!session || !session.groups) return;
+  const rest = (session.rest || []).map((id) => byId.get(id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+  saveResultImage({
+    title: 'My Hot Ranker',
+    subtitle: `Head-to-head · ${modeLabel(session)} · ${session.ids.length} athletes · ${session.answers.length} picks`,
+    rows: rankedRows(session.groups, 'all'),
+    rest,
+    footnote: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+  }, 'hot-ranker-head-to-head.png');
+};
 $('#btn-again').onclick = () => { clearSaved(); session = null; show('setup'); renderSetup(); };
 
 /* ---------------- tabs ---------------- */
