@@ -7,6 +7,8 @@ const $ = (s) => document.querySelector(s);
 
 /* ---------------- state ---------------- */
 let selected = new Set(Object.keys(SPORTS));
+let mode = null; // null = full ranking, otherwise top K
+const MODES = [[null, 'Full', 'every place'], [20, 'Top 20', 'faster'], [10, 'Top 10', 'fastest']];
 let session = null; // { seed, sports, ids, answers, finished }
 let busy = false;
 let current = null; // [a, b]
@@ -105,12 +107,25 @@ function renderSetup() {
     };
     wrap.append(b);
   }
-  const n = idsFor(selected).length;
+  const picker = $('#mode-picker');
+  picker.textContent = '';
+  const nSel = idsFor(selected).length;
+  for (const [k, label, note] of MODES) {
+    const b = el('button', 'seg');
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', k === mode);
+    b.append(el('b', '', label), el('small', '', nSel >= 2 ? `~${estimateTotal(nSel, k)} picks` : note));
+    b.onclick = () => { mode = k; renderSetup(); };
+    picker.append(b);
+  }
+
+  const n = nSel;
   const all = selected.size === Object.keys(SPORTS).length;
   $('#btn-toggle-all').textContent = all ? 'Clear all' : 'Select all';
   $('#setup-summary').innerHTML = n < 2
     ? 'Pick at least two athletes to start.'
-    : `<b>${n}</b> athletes · about <b>${estimateTotal(n)}</b> picks`;
+    : `<b>${n}</b> athletes · about <b>${estimateTotal(n, mode)}</b> picks` + (mode && mode < n ? ` · exact top ${mode}` : ' · full ranking');
   $('#btn-start').disabled = n < 2;
 
   const saved = load();
@@ -120,7 +135,7 @@ function renderSetup() {
     const pct = done ? 100 : progressPct(saved);
     $('#resume-meta').textContent = done
       ? `Finished ranking of ${saved.ids.length} athletes`
-      : `${saved.ids.length} athletes · ${saved.answers.length} picks made · ${pct}%`;
+      : `${modeLabel(saved)} · ${saved.ids.length} athletes · ${saved.answers.length} picks · ${pct}%`;
     $('#btn-resume').textContent = done ? 'View results' : 'Resume';
     card.hidden = false;
   } else {
@@ -141,6 +156,7 @@ $('#btn-start').onclick = () => {
     seed: (Math.random() * 2 ** 31) | 0,
     sports: [...selected],
     ids,
+    top: mode,
     answers: [],
     finished: false,
   };
@@ -161,9 +177,13 @@ $('#btn-discard').onclick = () => {
 };
 
 /* ---------------- duel screen ---------------- */
+function modeLabel(s) {
+  return s.top && s.top < s.ids.length ? `Top ${s.top}` : 'Full ranking';
+}
+
 function progressPct(s) {
   const done = s.answers.length;
-  const left = estimateRemaining(s.ids, s.seed, s.answers);
+  const left = estimateRemaining(s.ids, s.seed, s.answers, s.top);
   if (done + left === 0) return 100;
   return Math.min(99, Math.floor((done / (done + left)) * 100));
 }
@@ -184,10 +204,11 @@ function startDuel() {
 }
 
 function next() {
-  const r = step(session.ids, session.seed, session.answers);
+  const r = step(session.ids, session.seed, session.answers, session.top);
   if (r.done) {
     session.finished = true;
     session.groups = r.groups;
+    session.rest = r.rest;
     save();
     return showResults();
   }
@@ -206,7 +227,7 @@ function next() {
 
   // preload photos for every possible next pair
   for (const res of [-1, 1, 0]) {
-    const nx = step(session.ids, session.seed, [...session.answers, { a, b, r: res }]);
+    const nx = step(session.ids, session.seed, [...session.answers, { a, b, r: res }], session.top);
     if (!nx.done) nx.pair.forEach(preload);
   }
 }
@@ -229,6 +250,7 @@ function undo() {
   session.answers.pop();
   session.finished = false;
   delete session.groups;
+  delete session.rest;
   save();
   next();
   toast('Last pick undone');
@@ -267,13 +289,14 @@ function rankedRows(groups, sport) {
 
 function showResults() {
   if (!session.groups) {
-    const r = step(session.ids, session.seed, session.answers);
+    const r = step(session.ids, session.seed, session.answers, session.top);
     session.groups = r.groups;
+    session.rest = r.rest;
   }
   show('results');
   const sportsIn = [...new Set(session.ids.map((id) => byId.get(id).sport))];
   $('#results-meta').textContent =
-    `${session.ids.length} athletes · ${session.answers.length} picks`;
+    `${modeLabel(session)} · ${session.ids.length} athletes · ${session.answers.length} picks`;
 
   const f = $('#result-filter');
   f.textContent = '';
@@ -327,11 +350,24 @@ function renderRanking() {
     li.append(no, photoBox(p, 'avatar'), body);
     list.append(li);
   }
+
+  const rest = (session.rest || []).map((id) => byId.get(id))
+    .filter((p) => p && (resultFilter === 'all' || p.sport === resultFilter))
+    .sort((x, y) => x.name.localeCompare(y.name));
+  $('#rest').hidden = rest.length === 0;
+  const grid = $('#rest-grid');
+  grid.textContent = '';
+  for (const p of rest) {
+    const it = el('div', 'rest-item');
+    it.append(photoBox(p, 'avatar'), el('span', '', p.name));
+    grid.append(it);
+  }
 }
 
 function resultText() {
   const rows = rankedRows(session.groups, resultFilter);
-  const title = resultFilter === 'all' ? 'My Hot Ranker' : `My Hot Ranker · ${SPORTS[resultFilter].label}`;
+  const base = session.top && session.top < session.ids.length ? `My Hot Ranker · Top ${session.top}` : 'My Hot Ranker';
+  const title = resultFilter === 'all' ? base : `${base} · ${SPORTS[resultFilter].label}`;
   return `${title}\n` + rows.map(({ rank, tie, p }) => `${rank}${tie ? '=' : '.'} ${p.name} ${SPORTS[p.sport].icon}`).join('\n');
 }
 

@@ -24,7 +24,7 @@
       <div class="logo" aria-hidden="true">⚡</div>
       <h1>Hot Ranker</h1>
       <p class="tagline">Sports edition</p>
-      <p class="lead">Two athletes at a time — tap your favorite. A few hundred quick picks later you get your own full ranking.</p>
+      <p class="lead">Two athletes at a time — tap your favorite. Go for the full ranking or just find your Top 10 in a couple of minutes.</p>
     </header>
 
     <section id="resume-card" class="resume-card" hidden>
@@ -44,6 +44,8 @@
         <button class="link-btn" id="btn-toggle-all">Select all</button>
       </div>
       <div class="chips" id="sport-chips" role="group" aria-label="Categories"></div>
+      <h2 class="mode-title">Ranking length</h2>
+      <div class="segmented" id="mode-picker" role="radiogroup" aria-label="Ranking length"></div>
       <div class="summary" id="setup-summary"></div>
       <button class="btn btn-primary btn-lg" id="btn-start">Start ranking</button>
       <p class="hint desktop-only">Tip: use <kbd>←</kbd> <kbd>→</kbd> to pick, <kbd>↓</kbd> for a tie, <kbd>Backspace</kbd> to undo.</p>
@@ -94,6 +96,10 @@
     <div class="chips chips-filter" id="result-filter" role="tablist" aria-label="Filter by category"></div>
 
     <ol class="ranking" id="ranking"></ol>
+    <section class="rest" id="rest" hidden>
+      <h2>The rest <span class="rest-note">not ranked in this mode</span></h2>
+      <div class="rest-grid" id="rest-grid"></div>
+    </section>
 
     <div class="results-actions">
       <button class="btn btn-ghost" id="btn-copy">Copy list</button>
