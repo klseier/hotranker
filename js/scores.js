@@ -12,7 +12,7 @@ const DEFAULT_WEIGHTS = { face: 33, hot: 33, weak: 34 }; // percent
 export const CRITERIA = [
   { key: 'face', icon: '✨', label: 'Facecard', hint: 'Beauty — as objective as you can be' },
   { key: 'hot', icon: '🔥', label: 'Hotness', hint: 'How attractive they are — to you and in general' },
-  { key: 'weak', icon: '🫠', label: 'Weakness / Obsession', hint: 'Your level of weakness and obsession for them' },
+  { key: 'weak', icon: '🫠', label: 'Weakness', hint: 'Your level of weakness and obsession for them' },
 ];
 
 const $ = (s) => document.querySelector(s);
@@ -494,7 +494,7 @@ function bindOnce() {
     const w = CRITERIA.map((c) => `${c.label} ${Math.round((state.weights[c.key] / t) * 100)}%`).join(' · ');
     saveResultImage({
       title: 'My Hot Ranker · Scores',
-      subtitle: `${rowsImg.length} athletes · ✨ Facecard  🔥 Hotness  🫠 Weakness / Obsession`,
+      subtitle: `${rowsImg.length} athletes · ✨ Facecard  🔥 Hotness  🫠 Weakness`,
       rows: rowsImg,
       footnote: 'Weights: ' + w,
     }, 'hot-ranker-scores.png');
