@@ -56,15 +56,15 @@ const fmt = (v) => (v == null ? '—' : Number.isInteger(v) ? String(v) : v.toFi
  * rest: [p] (not ranked)
  */
 export async function renderResultImage({ title, subtitle, rows, rest = [], footnote = '' }) {
-  const W = 1080, pad = 44, gap = 16;
-  const cols = rows.length > 22 ? 2 : 1;
+  const cols = rows.length > 54 ? 3 : rows.length > 22 ? 2 : 1;
+  const W = cols === 3 ? 1440 : 1080, pad = 44, gap = 16;
   const colW = (W - pad * 2 - gap * (cols - 1)) / cols;
-  const rowH = cols === 2 ? 62 : 74;
+  const rowH = cols > 1 ? 62 : 74;
   const rowGap = 8;
   const perCol = Math.ceil(rows.length / cols);
   const headH = 190;
   const listH = perCol * (rowH + rowGap);
-  const restCols = 3;
+  const restCols = cols === 3 ? 4 : 3;
   const restH = rest.length ? 70 + Math.ceil(rest.length / restCols) * 34 : 0;
   const footH = 90;
   const H = Math.round(headH + listH + restH + footH);
@@ -122,7 +122,7 @@ export async function renderResultImage({ title, subtitle, rows, rest = [], foot
 
     // rank
     ctx.fillStyle = medal || C.hot2;
-    ctx.font = `800 ${cols === 2 ? 22 : 26}px ${FONT}`;
+    ctx.font = `800 ${cols > 1 ? 22 : 26}px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.fillText(String(r.rank) + (r.tie ? '=' : ''), x + 30, y + rowH / 2 + 8);
     ctx.textAlign = 'left';
@@ -136,41 +136,41 @@ export async function renderResultImage({ title, subtitle, rows, rest = [], foot
     // total
     let nameMax = right - tx;
     if (r.total != null) {
-      ctx.font = `800 ${cols === 2 ? 24 : 28}px ${FONT}`;
+      ctx.font = `800 ${cols > 1 ? 24 : 28}px ${FONT}`;
       ctx.fillStyle = C.hot2;
       ctx.textAlign = 'right';
-      ctx.fillText(r.total, right, y + (cols === 2 ? 28 : 33));
+      ctx.fillText(r.total, right, y + (cols > 1 ? 28 : 33));
       ctx.textAlign = 'left';
       nameMax -= ctx.measureText(r.total).width + 12;
     }
     // name
     ctx.fillStyle = C.text;
-    ctx.font = `700 ${cols === 2 ? 21 : 25}px ${FONT}`;
-    ctx.fillText(fit(ctx, r.p.name, nameMax), tx, y + (cols === 2 ? 27 : 32));
+    ctx.font = `700 ${cols > 1 ? 21 : 25}px ${FONT}`;
+    ctx.fillText(fit(ctx, r.p.name, nameMax), tx, y + (cols > 1 ? 27 : 32));
 
     // second line: flags + sport (+ scores)
     let lx = tx;
-    const ly = y + (cols === 2 ? 36 : 44);
-    const fh = cols === 2 ? 15 : 18, fw = Math.round(fh * 4 / 3);
+    const ly = y + (cols > 1 ? 36 : 44);
+    const fh = cols > 1 ? 15 : 18, fw = Math.round(fh * 4 / 3);
     for (const f of r.p.flags) {
       const im = flagOf.get(f);
       if (im) { try { ctx.save(); rr(ctx, lx, ly, fw, fh, 3); ctx.clip(); ctx.drawImage(im, lx, ly, fw, fh); ctx.restore(); } catch { ctx.restore(); } }
       lx += fw + 6;
     }
-    ctx.font = `${cols === 2 ? 15 : 18}px ${FONT}`;
+    ctx.font = `${cols > 1 ? 15 : 18}px ${FONT}`;
     ctx.fillStyle = C.muted;
     ctx.fillText(SPORTS[r.p.sport].icon, lx, ly + fh - 2);
     lx += 26;
     if (r.vals) {
-      ctx.font = `600 ${cols === 2 ? 16 : 19}px ${FONT}`;
+      ctx.font = `600 ${cols > 1 ? 16 : 19}px ${FONT}`;
       const parts = [['✨', r.vals[0]], ['🔥', r.vals[1]], ['🫠', r.vals[2]]];
       for (const [icon, v] of parts) {
         ctx.fillStyle = C.muted;
         ctx.fillText(icon, lx, ly + fh - 1);
-        lx += cols === 2 ? 20 : 24;
+        lx += cols > 1 ? 20 : 24;
         ctx.fillStyle = C.text;
         ctx.fillText(fmt(v), lx, ly + fh - 1);
-        lx += ctx.measureText(fmt(v)).width + (cols === 2 ? 12 : 16);
+        lx += ctx.measureText(fmt(v)).width + (cols > 1 ? 12 : 16);
       }
     } else if (cols === 1) {
       ctx.fillText(SPORTS[r.p.sport].label + ' · ' + r.p.flags.map((f) => COUNTRIES[f] || f).join(' / '), lx, ly + fh - 1);
