@@ -5,7 +5,8 @@ Pick your favorite in head-to-head matchups and get your personal ranking of ath
 **Live:** https://klseier.github.io/hotranker/
 
 - Categories: football, tennis, volleyball, Formula 1, basketball — choose which ones to rank
-- Full ranking (merge sort) or fast Top 20 / Top 10 (knockout bracket)
+- Full ranking (merge sort with galloping) or fast Top 20 / Top 10 (knockout bracket)
+- Pair order: Quick (list order — fewer picks when your taste matches it) or Random pairs
 - Real ties, undo, randomized pairs, accurate progress
 - Progress is saved in the browser (localStorage)
 - Keyboard: ← / → pick · ↓ tie · Backspace undo

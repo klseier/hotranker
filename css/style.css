@@ -335,3 +335,4 @@ kbd {
 .rest-item .avatar { width: 36px; height: 36px; border-radius: 9px; }
 .rest-item span { font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 380px) { .rest-grid { grid-template-columns: 1fr 1fr; } }
+.segmented-2 { grid-template-columns: repeat(2, 1fr); }

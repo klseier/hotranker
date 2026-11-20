@@ -36,18 +36,52 @@ const NEED = Symbol('need');
 
 /* ---------- full ranking: merge sort over groups of tied items ---------- */
 // cmp(a, b) -> -1 (a ranks higher), 1 (b ranks higher), 0 (tie)
+//
+// The merge "gallops" (like TimSort): once one side has won GALLOP times in a
+// row, it finds the end of that winning streak with exponential + binary
+// search instead of one-by-one comparisons. On a random order this costs
+// nothing extra; when the starting order already resembles the user's taste
+// it saves a lot of picks. Comparisons repeated during a gallop are free,
+// because answers are cached.
+const GALLOP = 3;
+
+function streak(src, from, other, cmp) {
+  // how many groups src[from..] beat `other` (src is sorted, so it's monotone)
+  const beats = (k) => cmp(src[k][0], other[0]) < 0;
+  let lo = from, hi = from, stepSize = 1;
+  while (hi < src.length && beats(hi)) { lo = hi + 1; hi = from + stepSize; stepSize *= 2; }
+  if (hi > src.length) hi = src.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (beats(mid)) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+
 function sortGroups(groups, cmp) {
   if (groups.length <= 1) return groups;
   const mid = groups.length >> 1;
   const left = sortGroups(groups.slice(0, mid), cmp);
   const right = sortGroups(groups.slice(mid), cmp);
   const out = [];
-  let i = 0, j = 0;
+  let i = 0, j = 0, winsL = 0, winsR = 0;
   while (i < left.length && j < right.length) {
+    if (winsL >= GALLOP) {
+      const end = streak(left, i, right[j], cmp);
+      while (i < end) out.push(left[i++]);
+      winsL = 0;
+      continue;
+    }
+    if (winsR >= GALLOP) {
+      const end = streak(right, j, left[i], cmp);
+      while (j < end) out.push(right[j++]);
+      winsR = 0;
+      continue;
+    }
     const r = cmp(left[i][0], right[j][0]);
-    if (r < 0) out.push(left[i++]);
-    else if (r > 0) out.push(right[j++]);
-    else out.push(left[i++].concat(right[j++])); // tie: merge into one group
+    if (r < 0) { out.push(left[i++]); winsL++; winsR = 0; }
+    else if (r > 0) { out.push(right[j++]); winsR++; winsL = 0; }
+    else { out.push(left[i++].concat(right[j++])); winsL = winsR = 0; } // tie
   }
   while (i < left.length) out.push(left[i++]);
   while (j < right.length) out.push(right[j++]);
@@ -97,8 +131,9 @@ function lookup(m, a, b) {
   return undefined;
 }
 
+// seed === 0 means "quick" mode: keep the list order (no shuffle)
 function run(ids, seed, top, cmp) {
-  const order = shuffle(ids, seed);
+  const order = seed === 0 ? ids.slice() : shuffle(ids, seed);
   if (top && top < ids.length) return topK(order, top, cmp);
   return { groups: sortGroups(order.map((id) => [id]), cmp), rest: [] };
 }
@@ -130,7 +165,7 @@ export function estimateRemaining(ids, seed, answers, top = null, runs = 4) {
   const m = answerMap(answers);
   let total = 0;
   for (let k = 0; k < runs; k++) {
-    const rnd = mulberry32(seed + 7919 * (k + 1) + answers.length);
+    const rnd = mulberry32(seed + 7919 * (k + 1) + answers.length + 1);
     const extra = new Map();
     let asked = 0;
     const cmp = (a, b) => {

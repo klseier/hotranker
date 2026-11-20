@@ -8,6 +8,8 @@ const $ = (s) => document.querySelector(s);
 /* ---------------- state ---------------- */
 let selected = new Set(Object.keys(SPORTS));
 let mode = null; // null = full ranking, otherwise top K
+let order = 'quick'; // 'quick' = list order + galloping merge, 'random' = shuffled pairs
+const ORDERS = [['quick', '⚡ Quick', 'fewer picks'], ['random', '🎲 Random pairs', 'new order each time']];
 const MODES = [[null, 'Full', 'every place'], [20, 'Top 20', 'faster'], [10, 'Top 10', 'fastest']];
 let session = null; // { seed, sports, ids, answers, finished }
 let busy = false;
@@ -120,12 +122,24 @@ function renderSetup() {
     picker.append(b);
   }
 
+  const op = $('#order-picker');
+  op.textContent = '';
+  for (const [k, label, note] of ORDERS) {
+    const b = el('button', 'seg');
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', k === order);
+    b.append(el('b', '', label), el('small', '', note));
+    b.onclick = () => { order = k; renderSetup(); };
+    op.append(b);
+  }
+
   const n = nSel;
   const all = selected.size === Object.keys(SPORTS).length;
   $('#btn-toggle-all').textContent = all ? 'Clear all' : 'Select all';
   $('#setup-summary').innerHTML = n < 2
     ? 'Pick at least two athletes to start.'
-    : `<b>${n}</b> athletes · about <b>${estimateTotal(n, mode)}</b> picks` + (mode && mode < n ? ` · exact top ${mode}` : ' · full ranking');
+    : `<b>${n}</b> athletes · ${order === 'quick' && !(mode && mode < n) ? 'up to' : 'about'} <b>${estimateTotal(n, mode)}</b> picks` + (mode && mode < n ? ` · exact top ${mode}` : ' · full ranking');
   $('#btn-start').disabled = n < 2;
 
   const saved = load();
@@ -153,7 +167,7 @@ $('#btn-start').onclick = () => {
   const ids = idsFor(selected);
   if (ids.length < 2) return;
   session = {
-    seed: (Math.random() * 2 ** 31) | 0,
+    seed: order === 'quick' ? 0 : (((Math.random() * 2 ** 31) | 0) || 1),
     sports: [...selected],
     ids,
     top: mode,
@@ -178,7 +192,8 @@ $('#btn-discard').onclick = () => {
 
 /* ---------------- duel screen ---------------- */
 function modeLabel(s) {
-  return s.top && s.top < s.ids.length ? `Top ${s.top}` : 'Full ranking';
+  const len = s.top && s.top < s.ids.length ? `Top ${s.top}` : 'Full ranking';
+  return `${len} · ${s.seed === 0 ? 'Quick' : 'Random pairs'}`;
 }
 
 function progressPct(s) {
