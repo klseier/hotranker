@@ -19,4 +19,4 @@ the photo must be `photos/<id>.webp` (4:5, ~560×700). Flags are in `assets/flag
 ## Scores tab
 A second way to rank (`#scores`): rate each athlete 0–10 (step 0.5) for
 ✨ Facecard, 🔥 Hotness and 🫠 Weakness. The ranking is a weighted average
-(default weights 33% / 33% / 34%, adjustable; on equal totals the higher Weakness ranks higher), updates live and is saved in the browser.
+(default weights 33% / 33% / 34%, adjustable; on equal totals the higher Weakness ranks higher), updates live and is saved in the browser. Two layouts: Cards (one athlete at a time) and List (many rows, sortable by total or any category).

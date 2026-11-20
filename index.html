@@ -133,12 +133,29 @@
 
     <div class="scores-layout" data-view="rate" id="scores-layout">
       <section class="rater" id="rater" aria-label="Rate athletes">
+        <div class="rater-top">
+          <div class="segmented segmented-2 layout-switch" id="layout-switch" role="radiogroup" aria-label="Layout">
+            <button class="seg" data-layout="cards" role="radio"><b>🃏 Cards</b></button>
+            <button class="seg" data-layout="list" role="radio"><b>☰ List</b></button>
+          </div>
+          <label class="sort-select list-only">Sort
+            <select id="list-sort">
+              <option value="list">List order</option>
+              <option value="total">Total</option>
+              <option value="face">✨ Facecard</option>
+              <option value="hot">🔥 Hotness</option>
+              <option value="weak">🫠 Weakness</option>
+              <option value="name">Name A–Z</option>
+            </select>
+          </label>
+        </div>
         <div class="chips chips-scroll" id="score-filter" aria-label="Category"></div>
         <div class="rater-progress">
           <div class="progress-bar"><div class="progress-fill" id="rated-fill"></div></div>
           <label class="toggle"><input type="checkbox" id="unrated-only"> <span>Unrated only</span></label>
         </div>
 
+        <div class="cards-only">
         <div class="rater-card">
           <div class="rater-photo-wrap">
             <button class="icon-btn nav-btn" id="prev-athlete" aria-label="Previous athlete">
@@ -162,6 +179,14 @@
           <button class="btn btn-primary" id="next-btn">Next ›</button>
         </div>
         <p class="hint desktop-only"><kbd>Enter</kbd> next · <kbd>Shift</kbd>+<kbd>Enter</kbd> previous · <kbd>Tab</kbd> between sliders, <kbd>↑</kbd><kbd>↓</kbd> ±0.5</p>
+        </div>
+
+        <div class="list-only">
+          <div class="list-head" aria-hidden="true">
+            <span></span><span>Athlete</span><span>✨ Facecard</span><span>🔥 Hotness</span><span>🫠 Weakness</span><span>Total</span>
+          </div>
+          <ol class="score-list" id="score-list"></ol>
+        </div>
       </section>
 
       <section class="board" id="board" aria-label="Score ranking">

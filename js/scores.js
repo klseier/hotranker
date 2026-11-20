@@ -21,6 +21,8 @@ let filter = 'all';
 let unratedOnly = false;
 let currentId = null;
 let started = false;
+let layout = (() => { try { return localStorage.getItem(KEY + ':layout') || 'cards'; } catch { return 'cards'; } })();
+let listSort = 'list';
 
 function loadState() {
   const empty = { scores: {}, weights: { ...DEFAULT_WEIGHTS } };
@@ -99,6 +101,7 @@ function renderProgress() {
   const q = queue();
   const i = q.indexOf(currentId);
   $('#rater-pos').textContent = `${i + 1} of ${q.length} · ${done}/${ids.length} fully rated`;
+  $('#rated-fill').title = `${done}/${ids.length} fully rated`;
 }
 
 function renderAthlete() {
@@ -216,6 +219,109 @@ function nextAfterRating() {
   go(1);
 }
 
+/* ---------- list layout ---------- */
+function sortedForList() {
+  let ids = queue();
+  const sc = (id) => state.scores[id] || {};
+  const num = (v) => (v == null ? -1 : v);
+  if (listSort === 'total') {
+    ids = ids.slice().sort((a, b) => (isComplete(b) - isComplete(a))
+      || num(overall(b)) - num(overall(a)) || num(sc(b).weak) - num(sc(a).weak));
+  } else if (['face', 'hot', 'weak'].includes(listSort)) {
+    ids = ids.slice().sort((a, b) => num(sc(b)[listSort]) - num(sc(a)[listSort]) || num(overall(b)) - num(overall(a)));
+  } else if (listSort === 'name') {
+    ids = ids.slice().sort((a, b) => byId.get(a).name.localeCompare(byId.get(b).name));
+  }
+  return ids;
+}
+
+function scoreControl(id, c, onChange) {
+  const v = state.scores[id]?.[c.key];
+  const cell = el('div', 'lcell' + (v == null ? ' unset' : ''));
+  const lab = el('span', 'lcell-label', c.icon);
+  lab.title = c.label;
+  const minus = el('button', 'step-btn step-sm', '−');
+  const plus = el('button', 'step-btn step-sm', '+');
+  minus.type = plus.type = 'button';
+  minus.setAttribute('aria-label', `${byId.get(id).name} ${c.label} minus 0.5`);
+  plus.setAttribute('aria-label', `${byId.get(id).name} ${c.label} plus 0.5`);
+  const range = document.createElement('input');
+  range.type = 'range'; range.min = MIN; range.max = MAX; range.step = STEP;
+  range.value = v ?? 5;
+  range.className = 'range range-sm';
+  range.setAttribute('aria-label', `${byId.get(id).name} ${c.label}`);
+  paintRange(range);
+  const val = el('span', 'lcell-val', fmt(v));
+  const set = (nv) => {
+    nv = clamp(nv);
+    (state.scores[id] ||= {})[c.key] = nv;
+    saveState();
+    range.value = nv;
+    paintRange(range);
+    val.textContent = fmt(nv);
+    cell.classList.remove('unset');
+    onChange();
+  };
+  const cur = () => state.scores[id]?.[c.key];
+  range.addEventListener('input', () => set(+range.value));
+  range.addEventListener('pointerup', () => set(+range.value));
+  minus.onclick = () => set(cur() == null ? 5 : cur() - STEP);
+  plus.onclick = () => set(cur() == null ? 5 : cur() + STEP);
+  cell.append(lab, minus, range, plus, val);
+  return cell;
+}
+
+function renderList() {
+  const list = $('#score-list');
+  list.textContent = '';
+  const ids = sortedForList();
+  // rank numbers follow the real ranking (same rules as the board)
+  const rankOf = new Map();
+  const ranked = rows().filter((r) => r.done);
+  let rank = 0, prev = null;
+  ranked.forEach((r, i) => {
+    const key = r.o.toFixed(2) + '|' + state.scores[r.id].weak;
+    if (key !== prev) rank = i + 1;
+    prev = key;
+    rankOf.set(r.id, rank);
+  });
+  for (const id of ids) {
+    const p = byId.get(id);
+    const li = el('li', 'lrow');
+    const no = el('div', 'lrank', rankOf.has(id) ? '#' + rankOf.get(id) : '');
+    const who = el('button', 'lwho');
+    who.type = 'button';
+    who.title = 'Open in Cards';
+    const av = photoBox(p, 'avatar');
+    const nm = el('div', 'lname');
+    nm.append(el('b', '', p.name), metaLine(p, false));
+    who.append(av, nm);
+    who.onclick = () => { currentId = id; setLayout('cards'); };
+    const total = el('div', 'ltotal');
+    const upd = () => {
+      const o = overall(id);
+      total.textContent = o == null ? '—' : o.toFixed(2);
+      total.classList.toggle('partial', !isComplete(id));
+      renderProgress();
+      scheduleBoard();
+    };
+    const cells = CRITERIA.map((c, i) => { const x = scoreControl(id, c, upd); x.classList.add('c' + (i + 1)); return x; });
+    li.append(no, who, ...cells, total);
+    list.append(li);
+    upd();
+  }
+  if (!ids.length) list.append(el('li', 'board-empty', unratedOnly ? 'Everyone here is rated 🎉' : 'Nobody in this category'));
+}
+
+function setLayout(l) {
+  layout = l;
+  try { localStorage.setItem(KEY + ':layout', l); } catch { /* ignore */ }
+  $('#rater').dataset.layout = l;
+  $('#scores-layout').classList.toggle('list-mode', l === 'list');
+  document.querySelectorAll('#layout-switch .seg').forEach((b) => b.setAttribute('aria-checked', b.dataset.layout === l));
+  renderAll();
+}
+
 /* ---------- board ---------- */
 let boardTimer = null;
 function scheduleBoard() {
@@ -268,7 +374,7 @@ function renderBoard() {
     }
     body.append(top, bars);
     li.append(no, photoBox(r.p, 'avatar'), body);
-    const open = () => { currentId = r.id; setView('rate'); renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    const open = () => { currentId = r.id; setView('rate'); if (layout !== 'cards') setLayout('cards'); else renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
     li.onclick = open;
     li.onkeydown = (e) => { if (e.key === 'Enter') open(); };
     list.append(li);
@@ -318,7 +424,7 @@ function setView(v) {
 
 function renderAll() {
   renderFilter();
-  renderAthlete();
+  if (layout === 'list') renderList(); else renderAthlete();
   renderProgress();
   renderBoard();
 }
@@ -360,6 +466,8 @@ function bindOnce() {
     renderAll();
   };
   document.querySelectorAll('#view-switch .seg').forEach((b) => { b.onclick = () => setView(b.dataset.view); });
+  document.querySelectorAll('#layout-switch .seg').forEach((b) => { b.onclick = () => setLayout(b.dataset.layout); });
+  $('#list-sort').onchange = (e) => { listSort = e.target.value; renderList(); };
   $('#copy-scores').onclick = async () => {
     try { await navigator.clipboard.writeText(boardText()); toast('Ranking copied'); }
     catch { toast('Copy is not available here'); }
@@ -382,7 +490,7 @@ function bindOnce() {
   };
   bindSwipe($('#rater-photo'));
   document.addEventListener('keydown', (e) => {
-    if ($('#screen-scores').hidden || e.metaKey || e.ctrlKey || e.altKey) return;
+    if ($('#screen-scores').hidden || layout !== 'cards' || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement) && e.target.tagName !== 'LI') {
       e.preventDefault();
       if (e.shiftKey) go(-1); else nextAfterRating();
@@ -396,6 +504,8 @@ export function openScores() {
     bindOnce();
     renderWeights();
     currentId = firstUnrated(visibleIds()) ?? visibleIds()[0];
+    setLayout(layout);
+    return;
   }
   renderAll();
 }
