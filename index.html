@@ -20,6 +20,10 @@
 
   <!-- SETUP -->
   <main id="screen-setup" class="screen">
+    <nav class="tabs" aria-label="Ranking method">
+      <button class="tab" data-tab="duel" aria-current="page">⚔️ Head-to-head</button>
+      <button class="tab" data-tab="scores" >⭐ Scores</button>
+    </nav>
     <header class="hero">
       <div class="logo" aria-hidden="true">⚡</div>
       <h1>Hot Ranker</h1>
@@ -107,6 +111,72 @@
       <button class="btn btn-ghost" id="btn-copy">Copy list</button>
       <button class="btn btn-ghost" id="btn-share" hidden>Share</button>
       <button class="btn btn-primary" id="btn-again">Rank again</button>
+    </div>
+  </main>
+
+
+  <!-- SCORES -->
+  <main id="screen-scores" class="screen screen-wide" hidden>
+    <nav class="tabs" aria-label="Ranking method">
+      <button class="tab" data-tab="duel" >⚔️ Head-to-head</button>
+      <button class="tab" data-tab="scores" aria-current="page">⭐ Scores</button>
+    </nav>
+    <header class="scores-head">
+      <h1>Score them</h1>
+      <p class="lead">Rate every athlete from 1 to 10 in three categories. Your ranking updates live.</p>
+    </header>
+
+    <div class="segmented segmented-2 view-switch" id="view-switch" role="tablist">
+      <button class="seg" data-view="rate" role="tab" aria-checked="true"><b>✍️ Rate</b></button>
+      <button class="seg" data-view="board" role="tab" aria-checked="false"><b>🏆 Ranking <span id="board-count"></span></b></button>
+    </div>
+
+    <div class="scores-layout" data-view="rate" id="scores-layout">
+      <section class="rater" id="rater" aria-label="Rate athletes">
+        <div class="chips chips-scroll" id="score-filter" aria-label="Category"></div>
+        <div class="rater-progress">
+          <div class="progress-bar"><div class="progress-fill" id="rated-fill"></div></div>
+          <label class="toggle"><input type="checkbox" id="unrated-only"> <span>Unrated only</span></label>
+        </div>
+
+        <div class="rater-card">
+          <div class="rater-photo-wrap">
+            <button class="icon-btn nav-btn" id="prev-athlete" aria-label="Previous athlete">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+            </button>
+            <div class="rater-photo" id="rater-photo"></div>
+            <button class="icon-btn nav-btn" id="next-athlete" aria-label="Next athlete">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <div class="rater-name" id="rater-name"></div>
+          <div class="rater-meta" id="rater-meta"></div>
+          <div class="rater-pos" id="rater-pos"></div>
+        </div>
+
+        <div class="criteria" id="criteria"></div>
+
+        <div class="rater-foot">
+          <div class="overall"><span>Overall</span><b id="overall">—</b></div>
+          <button class="btn btn-ghost btn-sm" id="clear-scores">Clear</button>
+          <button class="btn btn-primary" id="next-btn">Next ›</button>
+        </div>
+        <p class="hint desktop-only"><kbd>Enter</kbd> next · <kbd>Shift</kbd>+<kbd>Enter</kbd> previous · <kbd>Tab</kbd> between sliders, <kbd>↑</kbd><kbd>↓</kbd> ±0.5</p>
+      </section>
+
+      <section class="board" id="board" aria-label="Score ranking">
+        <div class="board-head">
+          <h2>Ranking</h2>
+          <button class="link-btn" id="copy-scores">Copy</button>
+        </div>
+        <details class="weights" id="weights">
+          <summary>Weights <span id="weights-summary"></span></summary>
+          <div id="weights-body"></div>
+          <button class="link-btn danger" id="reset-scores">Reset all scores</button>
+        </details>
+        <ol class="board-list" id="board-list"></ol>
+        <p class="board-empty" id="board-empty">Nobody rated yet — start scoring and the ranking appears here.</p>
+      </section>
     </div>
   </main>
 

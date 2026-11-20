@@ -1,5 +1,7 @@
 import { SPORTS, COUNTRIES, PARTICIPANTS } from './data.js';
 import { step, estimateRemaining, estimateTotal } from './sorter.js';
+import { el, photoBox, metaLine, toast } from './ui.js';
+import { openScores } from './scores.js';
 
 const STORE_KEY = 'hotranker:v1';
 const byId = new Map(PARTICIPANTS.map((p) => [p.id, p]));
@@ -32,43 +34,6 @@ function clearSaved() {
 }
 
 /* ---------------- helpers ---------------- */
-function el(tag, cls, text) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
-  return e;
-}
-function initials(name) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
-function photoBox(p, cls) {
-  const box = el('div', cls);
-  box.append(el('div', 'initials', initials(p.name)));
-  const img = new Image();
-  img.alt = p.name;
-  img.decoding = 'async';
-  img.onload = () => img.classList.add('loaded');
-  img.onerror = () => img.remove();
-  img.src = `photos/${p.id}.webp`;
-  if (img.complete && img.naturalWidth) img.classList.add('loaded');
-  box.append(img);
-  return box;
-}
-function metaLine(p, withLabel = true) {
-  const m = el('div', 'meta');
-  for (const f of p.flags) {
-    const i = new Image();
-    i.className = 'flag';
-    i.src = `assets/flags/${f}.svg`;
-    i.alt = i.title = COUNTRIES[f] || f;
-    m.append(i);
-  }
-  const s = SPORTS[p.sport];
-  const tag = el('span', 'sport-tag', s.icon + ' ');
-  if (withLabel) tag.append(el('span', 'label', s.label));
-  m.append(tag);
-  return m;
-}
 const preloaded = new Set();
 function preload(id) {
   if (!id || preloaded.has(id)) return;
@@ -76,16 +41,10 @@ function preload(id) {
   const i = new Image();
   i.src = `photos/${id}.webp`;
 }
-let toastTimer;
-function toast(msg) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
-}
 function show(name) {
-  for (const s of ['setup', 'duel', 'results']) $('#screen-' + s).hidden = s !== name;
+  for (const s of ['setup', 'duel', 'results', 'scores']) $('#screen-' + s).hidden = s !== name;
+  if (name === 'scores') { if (location.hash !== '#scores') history.replaceState(null, '', '#scores'); }
+  else if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   window.scrollTo(0, 0);
 }
 
@@ -400,6 +359,14 @@ if (navigator.share) {
 }
 $('#btn-again').onclick = () => { clearSaved(); session = null; show('setup'); renderSetup(); };
 
+/* ---------------- tabs ---------------- */
+document.querySelectorAll('[data-tab]').forEach((b) => {
+  b.onclick = () => {
+    if (b.dataset.tab === 'scores') { show('scores'); openScores(); }
+    else { show('setup'); renderSetup(); }
+  };
+});
+
 /* ---------------- boot ---------------- */
 renderSetup();
-show('setup');
+if (location.hash === '#scores') { show('scores'); openScores(); } else show('setup');

@@ -15,3 +15,8 @@ Pick your favorite in head-to-head matchups and get your personal ranking of ath
 ## Editing the list
 Participants live in `js/data.js`. Each entry is `[id, 'Name', 'flag codes']`;
 the photo must be `photos/<id>.webp` (4:5, ~560×700). Flags are in `assets/flags/`.
+
+## Scores tab
+A second way to rank (`#scores`): rate each athlete 1–10 (step 0.5) for
+✨ Facecard, 🔥 Hotness and 🫠 Weakness. The ranking is a weighted average
+(weights adjustable), updates live and is saved in the browser.
