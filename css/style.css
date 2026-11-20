@@ -503,3 +503,5 @@ kbd {
   .chips-scroll { margin: -2px -18px 0; padding: 2px 18px 4px; }
 }
 .board-sep { list-style: none; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; margin: 10px 4px 2px; }
+.ticks { padding: 0 10px; }
+.weights .link-btn { font-size: .8rem; margin-top: 8px; display: block; }

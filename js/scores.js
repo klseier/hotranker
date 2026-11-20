@@ -4,7 +4,8 @@ import { SPORTS, PARTICIPANTS } from './data.js';
 import { el, photoBox, metaLine, toast } from './ui.js';
 
 const KEY = 'hotranker:scores:v1';
-const MIN = 1, MAX = 10, STEP = 0.5;
+const MIN = 0, MAX = 10, STEP = 0.5;
+const DEFAULT_WEIGHTS = { face: 33, hot: 33, weak: 34 }; // percent
 
 export const CRITERIA = [
   { key: 'face', icon: '✨', label: 'Facecard', hint: 'Beauty — as objective as you can be' },
@@ -22,11 +23,13 @@ let currentId = null;
 let started = false;
 
 function loadState() {
-  const empty = { scores: {}, weights: { face: 1, hot: 1, weak: 1 } };
+  const empty = { scores: {}, weights: { ...DEFAULT_WEIGHTS } };
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
     if (!s || typeof s.scores !== 'object') return empty;
-    return { scores: s.scores, weights: { ...empty.weights, ...(s.weights || {}) } };
+    const w = s.weights || {};
+    const oldFormat = Object.values(w).every((v) => v <= 3); // early version stored ×1..×3
+    return { scores: s.scores, weights: oldFormat ? { ...DEFAULT_WEIGHTS } : { ...DEFAULT_WEIGHTS, ...w } };
   } catch { return empty; }
 }
 function saveState() {
@@ -140,7 +143,7 @@ function renderCriteria() {
     const range = document.createElement('input');
     range.type = 'range';
     range.min = MIN; range.max = MAX; range.step = STEP;
-    range.value = v ?? 5.5;
+    range.value = v ?? 5;
     range.className = 'range';
     range.setAttribute('aria-label', c.label);
     paintRange(range);
@@ -157,14 +160,14 @@ function renderCriteria() {
     range.addEventListener('input', () => set(+range.value));
     range.addEventListener('pointerup', () => set(+range.value)); // tap on the current spot also counts
     range.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); set((state.scores[currentId]?.[c.key] ?? 5) + STEP); }
-      if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); set((state.scores[currentId]?.[c.key] ?? 6) - STEP); }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); set(state.scores[currentId]?.[c.key] == null ? 5 : state.scores[currentId][c.key] + STEP); }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); set(state.scores[currentId]?.[c.key] == null ? 5 : state.scores[currentId][c.key] - STEP); }
     });
-    minus.onclick = () => set((state.scores[currentId]?.[c.key] ?? 6) - STEP);
-    plus.onclick = () => set((state.scores[currentId]?.[c.key] ?? 5) + STEP);
+    minus.onclick = () => set(state.scores[currentId]?.[c.key] == null ? 5 : state.scores[currentId][c.key] - STEP);
+    plus.onclick = () => set(state.scores[currentId]?.[c.key] == null ? 5 : state.scores[currentId][c.key] + STEP);
 
     const ticks = el('div', 'ticks');
-    for (let t = 1; t <= 10; t++) ticks.append(el('span', '', t));
+    for (let t = MIN; t <= MAX; t++) ticks.append(el('span', '', t));
     const mid = el('div', 'range-wrap');
     mid.append(range, ticks);
     ctrl.append(minus, mid, plus);
@@ -225,8 +228,8 @@ function rows() {
     .filter(isTouched)
     .map((id) => ({ id, p: byId.get(id), o: overall(id), done: isComplete(id) }))
     .filter((r) => r.o != null)
-    .sort((a, b) => b.o - a.o
-      || (state.scores[b.id].hot ?? 0) - (state.scores[a.id].hot ?? 0)
+    .sort((a, b) => b.o.toFixed(2) - a.o.toFixed(2)
+      || (state.scores[b.id].weak ?? -1) - (state.scores[a.id].weak ?? -1) // equal total → bigger weakness wins
       || a.p.name.localeCompare(b.p.name));
 }
 
@@ -240,9 +243,9 @@ function renderBoard() {
   const ranked = [...done, ...rs.filter((r) => !r.done)];
   let rank = 0, prev = null;
   ranked.forEach((r, i) => {
-    const key = r.o.toFixed(2);
+    const key = r.o.toFixed(2) + '|' + state.scores[r.id].weak;
     if (r.done && key !== prev) rank = i + 1;
-    const tie = r.done && done.some((x) => x !== r && x.o.toFixed(2) === key);
+    const tie = r.done && done.some((x) => x !== r && x.o.toFixed(2) + '|' + state.scores[x.id].weak === key);
     prev = key;
     if (!r.done && (i === 0 || ranked[i - 1].done)) list.append(el('li', 'board-sep', 'Not fully rated yet'));
     const li = el('li', 'board-row' + (r.id === currentId ? ' current' : '') + (r.done ? '' : ' partial'));
@@ -272,32 +275,39 @@ function renderBoard() {
   });
 }
 
+function weightsSummary() {
+  const t = CRITERIA.reduce((s, x) => s + state.weights[x.key], 0) || 1;
+  $('#weights-summary').textContent = CRITERIA.map((x) => `${x.icon} ${Math.round((state.weights[x.key] / t) * 100)}%`).join('  ');
+}
+
 function renderWeights() {
   const body = $('#weights-body');
   body.textContent = '';
-  const total = CRITERIA.reduce((s, c) => s + state.weights[c.key], 0) || 1;
-  $('#weights-summary').textContent = CRITERIA.map((c) => `${c.icon} ${Math.round((state.weights[c.key] / total) * 100)}%`).join('  ');
+  weightsSummary();
   for (const c of CRITERIA) {
     const row = el('div', 'weight-row');
     const r = document.createElement('input');
-    r.type = 'range'; r.min = 0; r.max = 3; r.step = 0.5; r.value = state.weights[c.key];
+    r.type = 'range'; r.min = 0; r.max = 100; r.step = 1; r.value = state.weights[c.key];
     r.className = 'range range-sm';
     r.setAttribute('aria-label', `${c.label} weight`);
-    r.style.setProperty('--pct', (state.weights[c.key] / 3) * 100 + '%');
-    const v = el('span', 'weight-val', '×' + fmt(state.weights[c.key]).replace('—', '0'));
+    r.style.setProperty('--pct', state.weights[c.key] + '%');
+    const v = el('span', 'weight-val', state.weights[c.key] + '%');
     r.oninput = () => {
       state.weights[c.key] = +r.value;
-      r.style.setProperty('--pct', (r.value / 3) * 100 + '%');
-      v.textContent = '×' + r.value;
+      r.style.setProperty('--pct', r.value + '%');
+      v.textContent = r.value + '%';
       saveState();
       renderOverall();
       scheduleBoard();
-      const t = CRITERIA.reduce((s, x) => s + state.weights[x.key], 0) || 1;
-      $('#weights-summary').textContent = CRITERIA.map((x) => `${x.icon} ${Math.round((state.weights[x.key] / t) * 100)}%`).join('  ');
+      weightsSummary();
     };
     row.append(el('span', 'weight-label', `${c.icon} ${c.label}`), r, v);
     body.append(row);
   }
+  const reset = el('button', 'link-btn', 'Default weights (33 / 33 / 34)');
+  reset.type = 'button';
+  reset.onclick = () => { state.weights = { ...DEFAULT_WEIGHTS }; saveState(); renderWeights(); renderOverall(); scheduleBoard(); };
+  body.append(reset);
 }
 
 /* ---------- view switch (phones) ---------- */

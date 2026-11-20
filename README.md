@@ -17,6 +17,6 @@ Participants live in `js/data.js`. Each entry is `[id, 'Name', 'flag codes']`;
 the photo must be `photos/<id>.webp` (4:5, ~560×700). Flags are in `assets/flags/`.
 
 ## Scores tab
-A second way to rank (`#scores`): rate each athlete 1–10 (step 0.5) for
+A second way to rank (`#scores`): rate each athlete 0–10 (step 0.5) for
 ✨ Facecard, 🔥 Hotness and 🫠 Weakness. The ranking is a weighted average
-(weights adjustable), updates live and is saved in the browser.
+(default weights 33% / 33% / 34%, adjustable; on equal totals the higher Weakness ranks higher), updates live and is saved in the browser.
