@@ -169,7 +169,7 @@ function renderScores(d, list) {
     prev = key;
     list.append(row(rank, tie, r.p, {
       total: r.o.toFixed(2),
-      vals: [['✨', 'Facecard', r.F], ['🔥', 'Hotness', r.H], ['🫠', 'Weakness', r.W]],
+      vals: [['✨', 'Facecard', r.F], ['🔥', 'Hotness', r.H], ['🫠', 'Weakness / Obsession', r.W]],
     }));
   });
   const pct = (x) => Math.round((x / tw) * 100);
